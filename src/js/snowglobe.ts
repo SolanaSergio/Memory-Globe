@@ -20,10 +20,10 @@ import { setupLights, disposeLights } from './utils/lights';
 import { TextureManager, TextureManagerOptions } from './utils/textureManager';
 
 // Constants for snow globe dimensions
-const BASE_GLOBE_RADIUS = 5;
-const BASE_BASE_RADIUS = 3;
-const BASE_HEIGHT = 2;
-const BASE_CAMERA_DISTANCE = 15;
+const BASE_GLOBE_RADIUS = 4.5;
+const BASE_BASE_RADIUS = 2.7;
+const BASE_HEIGHT = 1.8;
+const BASE_CAMERA_DISTANCE = 13.5;
 const MAX_TEXTURE_SIZE = 2048;
 
 // Mobile adjustments

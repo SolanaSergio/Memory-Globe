@@ -45,7 +45,7 @@ function createShakeButton(): HTMLButtonElement {
     button.textContent = 'Shake Globe';
     button.style.cssText = `
         position: absolute;
-        top: 20px;
+        top: 40px;
         left: 50%;
         transform: translateX(-50%);
         padding: 10px 20px;
@@ -57,6 +57,7 @@ function createShakeButton(): HTMLButtonElement {
         cursor: pointer;
         transition: background 0.3s;
         z-index: 100;
+        margin-top: env(safe-area-inset-top, 10px);
     `;
     button.addEventListener('mouseenter', () => {
         button.style.background = '#45a049';
