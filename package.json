@@ -1,0 +1,38 @@
+{
+  "name": "digital-snow-globe",
+  "version": "1.0.0",
+  "description": "A romantic web application that displays cherished memories in a magical 3D snow globe",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "download-envmap": "node scripts/download_envmap.js",
+    "test": "vitest",
+    "test:coverage": "vitest run --coverage"
+  },
+  "keywords": [
+    "three.js",
+    "webgl",
+    "snow-globe",
+    "memories",
+    "3d"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "gsap": "^3.12.5",
+    "howler": "^2.2.4",
+    "three": "^0.177.0"
+  },
+  "devDependencies": {
+    "@types/gsap": "^3.0.0",
+    "@types/howler": "^2.2.11",
+    "@types/three": "^0.177.0",
+    "@vitest/browser": "^3.2.2",
+    "happy-dom": "^17.6.3",
+    "typescript": "^5.4.2",
+    "vite": "^5.1.4",
+    "vitest": "^3.2.2"
+  }
+}
