@@ -20,11 +20,15 @@ import { setupLights, disposeLights } from './utils/lights';
 import { TextureManager, TextureManagerOptions } from './utils/textureManager';
 
 // Constants for snow globe dimensions
-const GLOBE_RADIUS = 5;
-const BASE_RADIUS = 3;
+const BASE_GLOBE_RADIUS = 5;
+const BASE_BASE_RADIUS = 3;
 const BASE_HEIGHT = 2;
-const CAMERA_DISTANCE = 15;
+const BASE_CAMERA_DISTANCE = 15;
 const MAX_TEXTURE_SIZE = 2048;
+
+// Mobile adjustments
+const MOBILE_BREAKPOINT = 768;
+const MOBILE_SCALE_FACTOR = 0.5; // More aggressive scaling for mobile
 
 export interface SnowGlobeOptions {
     textureOptions?: Partial<TextureManagerOptions>;
@@ -65,7 +69,7 @@ export class SnowGlobe {
             textureOptions: {
                 maxTextureSize: MAX_TEXTURE_SIZE,
                 position: new Vector3(0, 0, 0), // Center of the globe
-                scale: GLOBE_RADIUS * 0.6, // 60% of globe radius for better fit
+                scale: BASE_GLOBE_RADIUS * 0.6, // 60% of globe radius for better fit
                 displayDuration: 5000, // 5 seconds
                 fadeOutDuration: 2000, // 2 second fade
                 ...options.textureOptions
@@ -130,31 +134,22 @@ export class SnowGlobe {
         try {
             await this.textureManager.loadImages(paths);
             console.log('Successfully loaded images');
+            
+            // Get the image plane and add it to the scene if not already added
             const imagePlane = this.textureManager.getImagePlane();
             if (imagePlane) {
-                console.log('Got image plane, checking if it needs to be added to scene');
-                // Remove any existing image plane
-                const existingPlane = this.globeGroup.children.find(
-                    child => child === imagePlane
-                );
+                // Remove any existing image plane first
+                const existingPlane = this.globeGroup.children.find(child => child === imagePlane);
                 if (!existingPlane) {
                     console.log('Adding image plane to globe group');
-                    // Ensure the image plane is properly positioned
-                    imagePlane.position.copy(this.options.textureOptions.position!);
-                    imagePlane.lookAt(this.camera.position); // Make image face the camera
                     this.globeGroup.add(imagePlane);
-                } else {
-                    console.log('Image plane already exists in scene');
                 }
             } else {
                 console.error('No image plane returned from texture manager');
             }
         } catch (error) {
-            console.error('Detailed error in loadImages:', error);
-            if (error instanceof Error) {
-                console.error('Error stack:', error.stack);
-            }
-            throw new Error('Failed to load one or more images');
+            console.error('Failed to load images:', error);
+            throw error;
         }
     }
 
@@ -187,11 +182,28 @@ export class SnowGlobe {
         };
     }
 
+    private getScaledDimensions() {
+        const isMobile = window.innerWidth <= MOBILE_BREAKPOINT;
+        const scaleFactor = isMobile ? MOBILE_SCALE_FACTOR : 1;
+        return {
+            globeRadius: BASE_GLOBE_RADIUS * scaleFactor,
+            baseRadius: BASE_BASE_RADIUS * scaleFactor,
+            baseHeight: BASE_HEIGHT * scaleFactor,
+            cameraDistance: BASE_CAMERA_DISTANCE * scaleFactor
+        };
+    }
+
     private async init() {
-        // Set up camera
+        const dimensions = this.getScaledDimensions();
+        // Set up camera with responsive adjustments
         const aspect = this.container.clientWidth / this.container.clientHeight;
+        
         this.camera = new PerspectiveCamera(45, aspect, 0.1, 1000);
-        this.camera.position.set(0, CAMERA_DISTANCE * 0.7, CAMERA_DISTANCE);
+        this.camera.position.set(
+            0,
+            dimensions.cameraDistance * 0.7,
+            dimensions.cameraDistance
+        );
         this.camera.lookAt(new Vector3(0, 0, 0));
 
         // Set up renderer with improved settings
@@ -204,7 +216,7 @@ export class SnowGlobe {
         this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         this.renderer.shadowMap.enabled = true;
         this.renderer.shadowMap.type = PCFSoftShadowMap;
-        (this.renderer as any).colorSpace = SRGBColorSpace;
+        (this.renderer as any).outputColorSpace = SRGBColorSpace;
         this.renderer.toneMapping = ACESFilmicToneMapping;
         this.renderer.toneMappingExposure = 1.0;
         this.container.appendChild(this.renderer.domElement);
@@ -213,12 +225,12 @@ export class SnowGlobe {
         this.controls = new OrbitControls(this.camera, this.renderer.domElement);
         this.controls.enableDamping = true;
         this.controls.dampingFactor = 0.05;
-        this.controls.enableRotate = false; // Disable rotation
-        this.controls.enablePan = false; // Disable panning
-        this.controls.enableZoom = false; // Disable zooming
+        this.controls.enableRotate = false;
+        this.controls.enablePan = false;
+        this.controls.enableZoom = false;
         this.controls.maxPolarAngle = Math.PI / 1.5;
-        this.controls.minDistance = CAMERA_DISTANCE * 0.5;
-        this.controls.maxDistance = CAMERA_DISTANCE * 2;
+        this.controls.minDistance = dimensions.cameraDistance * 0.5;
+        this.controls.maxDistance = dimensions.cameraDistance * 2;
 
         // Set up lights
         this.lights = setupLights(this.scene);
@@ -238,8 +250,9 @@ export class SnowGlobe {
 
     private async createSnowGlobe() {
         try {
+            const dimensions = this.getScaledDimensions();
             // Create glass sphere
-            const sphereGeometry = new SphereGeometry(GLOBE_RADIUS, 64, 64);
+            const sphereGeometry = new SphereGeometry(dimensions.globeRadius, 64, 64);
             const glassMaterial = createGlassMaterial();
             const sphere = new Mesh(sphereGeometry, glassMaterial);
             sphere.castShadow = true;
@@ -247,10 +260,15 @@ export class SnowGlobe {
             this.materials.push(glassMaterial);
 
             // Create base
-            const baseGeometry = new CylinderGeometry(BASE_RADIUS, BASE_RADIUS * 1.2, BASE_HEIGHT, 64);
+            const baseGeometry = new CylinderGeometry(
+                dimensions.baseRadius,
+                dimensions.baseRadius * 1.2,
+                dimensions.baseHeight,
+                64
+            );
             const baseMaterial = createBaseMaterial();
             const base = new Mesh(baseGeometry, baseMaterial);
-            base.position.y = -(GLOBE_RADIUS + BASE_HEIGHT / 2);
+            base.position.y = -(dimensions.globeRadius + dimensions.baseHeight / 2);
             base.castShadow = true;
             base.receiveShadow = true;
             this.materials.push(baseMaterial);
@@ -283,10 +301,16 @@ export class SnowGlobe {
     private onWindowResize() {
         if (this.isDisposed) return;
 
+        const dimensions = this.getScaledDimensions();
         const width = this.container.clientWidth;
         const height = this.container.clientHeight;
 
         this.camera.aspect = width / height;
+        this.camera.position.set(
+            0,
+            dimensions.cameraDistance * 0.7,
+            dimensions.cameraDistance
+        );
         this.camera.updateProjectionMatrix();
         this.renderer.setSize(width, height);
     }
@@ -322,8 +346,11 @@ export class SnowGlobe {
         
         this.isShaking = true;
         this.shakeStartTime = Date.now();
-        console.log('Starting shake animation, showing next image');
-        this.textureManager.showNextImage();
+        
+        // Show next image after a slight delay to match the shake animation
+        setTimeout(() => {
+            this.textureManager.showNextImage();
+        }, 200); // Small delay to make it feel more natural
     }
 
     private updateShake(): void {
